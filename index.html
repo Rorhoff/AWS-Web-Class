@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classifieds App</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Classifieds Board</h1>
+    <div id="authStatus"></div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Register</h2>
+      <form id="registerForm">
+        <label for="registerUsername">Username</label>
+        <input id="registerUsername" name="username" required minlength="3" />
+
+        <label for="registerState">What state do you live in?</label>
+        <select id="registerState" name="state" required>
+          <option value="">Select your state</option>
+          <option value="Alabama">Alabama</option>
+          <option value="Arizona">Arizona</option>
+          <option value="Arkansas">Arkansas</option>
+          <option value="California">California</option>
+          <option value="Colorado">Colorado</option>
+          <option value="Connecticut">Connecticut</option>
+          <option value="Delaware">Delaware</option>
+          <option value="Florida">Florida</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Hawaii">Hawaii</option>
+          <option value="Idaho">Idaho</option>
+          <option value="Illinois">Illinois</option>
+          <option value="Indiana">Indiana</option>
+          <option value="Iowa">Iowa</option>
+          <option value="Kansas">Kansas</option>
+          <option value="Kentucky">Kentucky</option>
+          <option value="Louisiana">Louisiana</option>
+          <option value="Maine">Maine</option>
+          <option value="Maryland">Maryland</option>
+          <option value="Massachusetts">Massachusetts</option>
+          <option value="Michigan">Michigan</option>
+          <option value="Minnesota">Minnesota</option>
+          <option value="Mississippi">Mississippi</option>
+          <option value="Missouri">Missouri</option>
+          <option value="Montana">Montana</option>
+          <option value="Nebraska">Nebraska</option>
+          <option value="Nevada">Nevada</option>
+          <option value="New Hampshire">New Hampshire</option>
+          <option value="New Jersey">New Jersey</option>
+          <option value="New Mexico">New Mexico</option>
+          <option value="New York">New York</option>
+          <option value="North Carolina">North Carolina</option>
+          <option value="North Dakota">North Dakota</option>
+          <option value="Ohio">Ohio</option>
+          <option value="Oklahoma">Oklahoma</option>
+          <option value="Oregon">Oregon</option>
+          <option value="Pennsylvania">Pennsylvania</option>
+          <option value="Rhode Island">Rhode Island</option>
+          <option value="South Carolina">South Carolina</option>
+          <option value="South Dakota">South Dakota</option>
+          <option value="Tennessee">Tennessee</option>
+          <option value="Texas">Texas</option>
+          <option value="Utah">Utah</option>
+          <option value="Vermont">Vermont</option>
+          <option value="Virginia">Virginia</option>
+          <option value="Washington">Washington</option>
+          <option value="West Virginia">West Virginia</option>
+          <option value="Wisconsin">Wisconsin</option>
+          <option value="Wyoming">Wyoming</option>
+        </select>
+
+        <label for="registerPassword">Password</label>
+        <input id="registerPassword" name="password" type="password" required minlength="4" />
+
+        <button type="submit">Create Account</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Login</h2>
+      <form id="loginForm">
+        <label for="loginUsername">Username</label>
+        <input id="loginUsername" name="username" required />
+
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="password" type="password" required />
+
+        <button type="submit">Login</button>
+      </form>
+      <div class="actions-row">
+        <button id="enterProfileBtn" type="button">Enter Profile</button>
+        <button id="logoutBtn" class="secondary" type="button">Logout</button>
+      </div>
+      <p id="profileHint" class="hint">Log in, then select into your profile to post ads.</p>
+    </section>
+
+    <section id="postAdSection" class="card" hidden>
+      <h2>Post an Ad</h2>
+      <form id="adForm">
+        <label for="adTitle">Title</label>
+        <input id="adTitle" name="title" required />
+
+        <label for="adPrice">Price</label>
+        <input id="adPrice" name="price" required placeholder="$100" />
+
+        <label for="adDescription">Description</label>
+        <textarea id="adDescription" name="description" rows="4" required></textarea>
+
+        <button type="submit">Post Ad</button>
+      </form>
+      <p class="hint">You must be logged in to post.</p>
+    </section>
+
+    <section class="card full">
+      <h2>Ads</h2>
+      <p id="adsScopeHint" class="hint"></p>
+      <div id="adsList" class="ads-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
