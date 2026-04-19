@@ -4,11 +4,13 @@ A simple classifieds web app built with plain HTML, CSS, and JavaScript.
 
 ## Features
 
-- Register with username, password, and U.S. state (continental states + Hawaii).
+- Register with username, email, password, and U.S. state (continental states + Hawaii).
 - Login/logout with local browser storage.
 - `Post an Ad` stays hidden until:
   - user logs in, and
   - user clicks `Enter Profile`.
+- Profile contact fields for phone and email (email is required).
+- Account recovery drafts an email containing the username and a password reset link (demo behavior; see note below).
 - Ads are filtered by the logged-in user's state.
 - Ads are displayed newest to oldest.
 
@@ -36,8 +38,18 @@ The app stores data in browser `localStorage`:
 - `classified_current_user`
 - `classified_profile_active`
 - `classified_ads`
+- `classified_password_reset` (temporary reset token for the demo recovery flow)
 
 To reset data, clear local storage for the site in your browser.
+
+## Account recovery note
+
+This project is a static frontend. The recovery button uses `mailto:` to open your email client with a pre-filled message that includes:
+
+- your username
+- a reset link using the page URL hash (`#reset=...`)
+
+A production app needs a backend + email provider to send messages automatically and to store reset tokens securely server-side.
 
 ## Publish with GitHub Pages
 
