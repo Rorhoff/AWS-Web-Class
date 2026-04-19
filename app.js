@@ -5,10 +5,19 @@ const PROFILE_ACTIVE_KEY = "classified_profile_active";
 
 const registerForm = document.getElementById("registerForm");
 const loginForm = document.getElementById("loginForm");
+const profileForm = document.getElementById("profileForm");
 const adForm = document.getElementById("adForm");
+const authSection = document.getElementById("authSection");
 const postAdSection = document.getElementById("postAdSection");
+const menuWrapper = document.getElementById("menuWrapper");
+const menuToggleBtn = document.getElementById("menuToggleBtn");
+const menuPanel = document.getElementById("menuPanel");
 const enterProfileBtn = document.getElementById("enterProfileBtn");
+const exitProfileBtn = document.getElementById("exitProfileBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const profileStateSelect = document.getElementById("profileState");
+const adStateSelect = document.getElementById("adState");
+const adImagesInput = document.getElementById("adImages");
 const adsList = document.getElementById("adsList");
 const adsScopeHint = document.getElementById("adsScopeHint");
 const authStatus = document.getElementById("authStatus");
@@ -31,8 +40,16 @@ function getUsers() {
   return readJSON(USERS_KEY, []);
 }
 
+function writeUsers(users) {
+  writeJSON(USERS_KEY, users);
+}
+
 function getAds() {
   return readJSON(ADS_KEY, []);
+}
+
+function writeAds(ads) {
+  writeJSON(ADS_KEY, ads);
 }
 
 function getCurrentUser() {
@@ -48,7 +65,13 @@ function setCurrentUser(username) {
 }
 
 function normalizeState(value) {
-  return value.trim().toLowerCase();
+  return String(value).trim().toLowerCase();
+}
+
+function getCurrentUserRecord() {
+  const currentUser = getCurrentUser();
+  if (!currentUser) return null;
+  return getUsers().find((user) => user.username === currentUser) || null;
 }
 
 function isProfileActive() {
@@ -60,7 +83,6 @@ function setProfileActive(active) {
 }
 
 function hashPassword(password) {
-  // Demo-only obfuscation; use proper server-side hashing in production.
   return btoa(password);
 }
 
@@ -72,40 +94,45 @@ function showToast(message) {
   }, 2200);
 }
 
+function escapeHTML(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function closeMenu() {
+  menuPanel.hidden = true;
+}
+
 function updateAuthUI() {
-  const currentUser = getCurrentUser();
-  const userRecord = currentUser ? getUsers().find((user) => user.username === currentUser) : null;
-
-  if (userRecord) {
-    authStatus.textContent = `Logged in as ${currentUser} (${userRecord.state})`;
-  } else {
-    authStatus.textContent = "Not logged in";
-  }
-
+  const userRecord = getCurrentUserRecord();
   const profileActive = Boolean(userRecord) && isProfileActive();
+
+  authSection.hidden = Boolean(userRecord);
+  menuWrapper.hidden = !userRecord;
   postAdSection.hidden = !profileActive;
   adForm.querySelector("button").disabled = !profileActive;
-  enterProfileBtn.hidden = !userRecord || profileActive;
+  enterProfileBtn.hidden = profileActive;
+  exitProfileBtn.hidden = !profileActive;
   logoutBtn.hidden = !userRecord;
 
-  if (!userRecord) {
-    profileHint.textContent = "Log in, then select into your profile to post ads.";
-  } else if (!profileActive) {
-    profileHint.textContent = "Select Enter Profile to unlock posting.";
+  if (userRecord) {
+    authStatus.textContent = `${userRecord.username} (${userRecord.state})`;
+    profileHint.textContent = "Use the top-right menu to enter your profile.";
+    profileStateSelect.value = userRecord.state;
+    adStateSelect.value = userRecord.state;
   } else {
-    profileHint.textContent = "Profile active. You can now post ads.";
+    authStatus.textContent = "Not logged in";
+    profileHint.textContent = "Log in, then use the top-right menu to enter your profile.";
+    closeMenu();
   }
 }
 
 function renderAds() {
-  const currentUser = getCurrentUser();
-  if (!currentUser) {
-    adsScopeHint.textContent = "Log in to see ads from your state.";
-    adsList.innerHTML = "<p>Please log in to view local ads.</p>";
-    return;
-  }
-
-  const userRecord = getUsers().find((user) => user.username === currentUser);
+  const userRecord = getCurrentUserRecord();
   if (!userRecord) {
     adsScopeHint.textContent = "Log in to see ads from your state.";
     adsList.innerHTML = "<p>Please log in to view local ads.</p>";
@@ -113,7 +140,7 @@ function renderAds() {
   }
 
   const ads = getAds()
-    .filter((ad) => normalizeState(ad.state || "") === normalizeState(userRecord.state))
+    .filter((ad) => normalizeState(ad.state) === normalizeState(userRecord.state))
     .sort((a, b) => b.createdAt - a.createdAt);
 
   adsScopeHint.textContent = `Showing newest ads for ${userRecord.state}.`;
@@ -123,28 +150,42 @@ function renderAds() {
   }
 
   adsList.innerHTML = ads
-    .map(
-      (ad) => `
+    .map((ad) => {
+      const imageBlock = ad.images
+        .map((img, index) => `<img src="${img}" alt="Ad image ${index + 1}" loading="lazy" />`)
+        .join("");
+
+      return `
       <article class="ad-item">
         <div class="ad-title-row">
           <span>${escapeHTML(ad.title)}</span>
           <span>${escapeHTML(ad.price)}</span>
         </div>
         <p>${escapeHTML(ad.description)}</p>
-        <p class="meta">Posted by ${escapeHTML(ad.author)} in ${escapeHTML(ad.state)} on ${new Date(ad.createdAt).toLocaleString()}</p>
+        <p class="meta">
+          ${escapeHTML(ad.category)} / ${escapeHTML(ad.subCategory)} in ${escapeHTML(ad.state)}
+        </p>
+        <p class="meta">Posted by ${escapeHTML(ad.author)} on ${new Date(ad.createdAt).toLocaleString()}</p>
+        <div class="image-grid">${imageBlock}</div>
       </article>
-    `
-    )
+    `;
+    })
     .join("");
 }
 
-function escapeHTML(value) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+function filesToDataUrls(fileList) {
+  const files = Array.from(fileList);
+  return Promise.all(
+    files.map(
+      (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Failed to read image file."));
+          reader.readAsDataURL(file);
+        })
+    )
+  );
 }
 
 registerForm.addEventListener("submit", (event) => {
@@ -155,7 +196,7 @@ registerForm.addEventListener("submit", (event) => {
   const password = String(formData.get("password"));
 
   if (!state) {
-    showToast("Please enter your state.");
+    showToast("Please select your state.");
     return;
   }
 
@@ -167,7 +208,7 @@ registerForm.addEventListener("submit", (event) => {
   }
 
   users.push({ username, state, passwordHash: hashPassword(password) });
-  writeJSON(USERS_KEY, users);
+  writeUsers(users);
   registerForm.reset();
   showToast("Account created. You can login now.");
 });
@@ -178,8 +219,7 @@ loginForm.addEventListener("submit", (event) => {
   const username = String(formData.get("username")).trim().toLowerCase();
   const password = String(formData.get("password"));
 
-  const users = getUsers();
-  const matchingUser = users.find(
+  const matchingUser = getUsers().find(
     (user) => user.username === username && user.passwordHash === hashPassword(password)
   );
 
@@ -196,6 +236,16 @@ loginForm.addEventListener("submit", (event) => {
   showToast("Logged in successfully.");
 });
 
+menuToggleBtn.addEventListener("click", () => {
+  menuPanel.hidden = !menuPanel.hidden;
+});
+
+document.addEventListener("click", (event) => {
+  if (!menuWrapper.contains(event.target)) {
+    closeMenu();
+  }
+});
+
 enterProfileBtn.addEventListener("click", () => {
   const currentUser = getCurrentUser();
   if (!currentUser) {
@@ -203,54 +253,101 @@ enterProfileBtn.addEventListener("click", () => {
     return;
   }
   setProfileActive(true);
+  closeMenu();
   updateAuthUI();
-  showToast("Profile selected. Posting is enabled.");
+  showToast("Profile mode enabled.");
+});
+
+exitProfileBtn.addEventListener("click", () => {
+  // Exit profile and return to the register/login view.
+  setCurrentUser(null);
+  setProfileActive(false);
+  closeMenu();
+  updateAuthUI();
+  renderAds();
+  showToast("Exited profile.");
 });
 
 logoutBtn.addEventListener("click", () => {
   setCurrentUser(null);
   setProfileActive(false);
+  closeMenu();
   updateAuthUI();
   renderAds();
   showToast("Logged out.");
 });
 
-adForm.addEventListener("submit", (event) => {
+profileForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const currentUser = getCurrentUser();
-  if (!currentUser) {
+  const newState = String(new FormData(profileForm).get("state")).trim();
+  if (!currentUser || !newState) return;
+
+  const users = getUsers();
+  const userIndex = users.findIndex((user) => user.username === currentUser);
+  if (userIndex === -1) return;
+
+  users[userIndex].state = newState;
+  writeUsers(users);
+  adStateSelect.value = newState;
+  updateAuthUI();
+  renderAds();
+  showToast("Profile state updated.");
+});
+
+adForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const userRecord = getCurrentUserRecord();
+  if (!userRecord) {
     showToast("Please log in first.");
     return;
   }
   if (!isProfileActive()) {
-    showToast("Select Enter Profile before posting.");
-    return;
-  }
-  const currentUserRecord = getUsers().find((user) => user.username === currentUser);
-  if (!currentUserRecord) {
-    showToast("Your account could not be loaded. Please log in again.");
+    showToast("Enter profile mode before posting.");
     return;
   }
 
   const formData = new FormData(adForm);
   const title = String(formData.get("title")).trim();
+  const state = String(formData.get("state")).trim();
+  const category = String(formData.get("category")).trim();
+  const subCategory = String(formData.get("subCategory")).trim();
   const price = String(formData.get("price")).trim();
   const description = String(formData.get("description")).trim();
+  const files = adImagesInput.files ? Array.from(adImagesInput.files) : [];
 
-  const ads = getAds();
-  ads.push({
-    id: crypto.randomUUID(),
-    title,
-    price,
-    description,
-    author: currentUser,
-    state: currentUserRecord.state,
-    createdAt: Date.now(),
-  });
-  writeJSON(ADS_KEY, ads);
-  adForm.reset();
-  renderAds();
-  showToast("Ad posted.");
+  if (!state || !category || !subCategory) {
+    showToast("State, category, and sub category are required.");
+    return;
+  }
+  if (files.length < 1 || files.length > 10) {
+    showToast("Please upload between 1 and 10 pictures.");
+    return;
+  }
+
+  try {
+    const images = await filesToDataUrls(files);
+    const ads = getAds();
+    ads.push({
+      id: crypto.randomUUID(),
+      title,
+      state,
+      category,
+      subCategory,
+      price,
+      description,
+      images,
+      author: userRecord.username,
+      createdAt: Date.now(),
+    });
+    writeAds(ads);
+    adForm.reset();
+    adStateSelect.value = getCurrentUserRecord()?.state || "";
+    renderAds();
+    showToast("Ad posted.");
+  } catch (error) {
+    showToast("One or more images could not be processed.");
+  }
 });
 
 updateAuthUI();
